@@ -12,9 +12,15 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.ScaleAnimation;
+import android.view.animation.TranslateAnimation;
 import android.widget.AbsoluteLayout;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import net.qiujuer.genius.blur.StackBlur;
 
@@ -41,6 +47,9 @@ public class EditDigestWindow extends PopupWindow{
     private Bitmap overlay = null;
 
     private Handler mHandler = new Handler();
+    private ScaleAnimation mShowAnim;
+    private TextView testView;
+    private RelativeLayout testLayout;
 
     public EditDigestWindow(Activity context){
         mContext = context;
@@ -49,13 +58,14 @@ public class EditDigestWindow extends PopupWindow{
 
     /**
      * 设置宽高为除去上方状态栏的全屏
-     * 实例化后需要调用
+     * 实例化后需要手动调用
      */
     public void init(){
         Rect frame = new Rect();
         mContext.getWindow().getDecorView()
                 .getWindowVisibleDisplayFrame(frame);
         statusBarHeight = frame.top;
+        Log.d("EditDigest",""+statusBarHeight);
         DisplayMetrics metrics = new DisplayMetrics();
         mContext.getWindowManager().getDefaultDisplay()
                 .getMetrics(metrics);
@@ -64,6 +74,9 @@ public class EditDigestWindow extends PopupWindow{
 
         setWidth(mWidth);
         setHeight(mHeight);
+        mShowAnim = new ScaleAnimation(0.5f, 1f, 0.5f, 1f, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+        mShowAnim.setFillAfter(true);
+        mShowAnim.setDuration(500);
     }
 
 
@@ -110,11 +123,14 @@ public class EditDigestWindow extends PopupWindow{
         view.setDrawingCacheEnabled(true);
         view.buildDrawingCache(true);
         mBitmap = view.getDrawingCache();
-
-        float scaleFactor = 8;//缩放比例
-        float radius = 10;//模糊程度
+        //TODO 去掉通知栏
         int width = mBitmap.getWidth();
         int height =  mBitmap.getHeight();
+        mBitmap = Bitmap.createBitmap(mBitmap,0,statusBarHeight,width,height-statusBarHeight);
+        height -= statusBarHeight;
+        float scaleFactor = 8;//缩放比例
+        float radius = 3;//模糊程度
+
         overlay = Bitmap.createBitmap((int) (width / scaleFactor),(int) (height / scaleFactor),Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(overlay);
         canvas.scale(1 / scaleFactor, 1 / scaleFactor);
@@ -147,6 +163,12 @@ public class EditDigestWindow extends PopupWindow{
     public void showMoreWindow(View anchor,int bottomMargin) {
         final LinearLayout layout = (LinearLayout) LayoutInflater
                 .from(mContext).inflate(R.layout.pop_edit_digest, null);
+
+//TODO  绑定控件 回调接口
+        testLayout = (RelativeLayout)layout.findViewById(R.id.test_layout);
+        testView = (TextView)layout.findViewById(R.id.test_text);
+
+
         setContentView(layout);
 
         android.widget.RelativeLayout.LayoutParams params =
@@ -157,14 +179,14 @@ public class EditDigestWindow extends PopupWindow{
         params.leftMargin = 18;
 
         //TODO 设置内部控件 Anim
-
+        setAnimationStyle(android.R.style.Animation_Toast);
         //设置背景高斯模糊
         setBackgroundDrawable(new BitmapDrawable(mContext.getResources(), blur(2)));
-
         //外部是否可以点击
         setOutsideTouchable(true);
         setFocusable(true);
         showAtLocation(anchor, Gravity.BOTTOM, 0, statusBarHeight);
+        testLayout.startAnimation(mShowAnim);
     }
 
 
